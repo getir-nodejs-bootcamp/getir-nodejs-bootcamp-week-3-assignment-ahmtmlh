@@ -91,13 +91,29 @@ function verifyAuth(req, res, next) {
 //#endregion
 
 //#region App routes
+//#region Public routes
 app.post("/requestToken", (req, res) => {
+    let uniqueId = req.body.id || req.body.uniqueId
 
+    if (!uniqueId) {
+        res.status(401).send('UniqueID is required as a request body!')
+        return
+    }
+
+    let token = JwtTokenUtil.createToken(uniqueId)
+
+    res.status(200).json({token: token})
 });
+
+app.get('/movies', (req, res) => {
+    res.status(200).json(movieDB)
+})
+
+//#endregion Public routes
 
 app.get('/movie/:movieId', verifyAuth, (req, res) => {
     let movieId = req.params.movieId
-    const foundMovie = lodash.find(movieDB, (item)=>{return item.id == movieId})
+    const foundMovie = lodash.find(movieDB, (item) => { return item.id == movieId })
 
     if (foundMovie) {
         res.status(200).json(foundMovie)    
@@ -106,10 +122,7 @@ app.get('/movie/:movieId', verifyAuth, (req, res) => {
     }
 })
 
-app.get('/movie', (req, res) => {
-    res.status(200).json(movieDB)
-})
-
+// TODO: 404 not found page to be added (app.use('*') ??? )
 
 //#endregion
 
