@@ -278,6 +278,6 @@ app.use('*', function(req, res){
 //#endregion
 //#endregion
 
-// App start point
 createPseudoDB()
-app.listen(8080)
+
+module.exports = app
