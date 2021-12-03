@@ -10,6 +10,14 @@ const app = express()
 app.use(logging)
 app.use(express.json())
 
+function checkTypeString(value){
+    return typeof value == 'string'
+}
+
+function checkTypeNumber(value){
+    return typeof value == 'number'
+}
+
 function createPseudoDB() {
     // Movie 1
     movieDB.push({
@@ -220,12 +228,12 @@ app.patch('/movie/modify/:movieId', verifyAuth, (req, res) => {
         return
     }
 
-    updateField(foundMovie, 'name', movie.name)
-    updateField(foundMovie, 'director', movie.director)
-    updateField(foundMovie, 'year', movie.year)
-    updateField(foundMovie, 'duration', movie.duration)
+    updateField(foundMovie, 'name', movie.name, additionalValidation=checkTypeString)
+    updateField(foundMovie, 'director', movie.director, additionalValidation=checkTypeString)
+    updateField(foundMovie, 'year', movie.year, additionalValidation=checkTypeNumber)
+    updateField(foundMovie, 'duration', movie.duration, additionalValidation=checkTypeNumber)
     updateField(foundMovie, 'cast', movie.cast, additionalValidation=Array.isArray)
-    updateField(foundMovie, 'imdbScore', movie.imdbScore)
+    updateField(foundMovie, 'imdbScore', movie.imdbScore, additionalValidation=checkTypeNumber)
 
     res.status(200).json({
         success: true,
