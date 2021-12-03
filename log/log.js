@@ -10,11 +10,11 @@ console.log("Logs will be saved to file: ", logFileName)
 const logFileLock = new RWLock()
 
 function logRequest(request, response) {
-    
     let requestInfo = {
         sender: request.headers['user-agent'],
         url: request._parsedUrl.path,
         method: request.method,
+        uniqueId: request.userData ? request.userData.unique_id : undefined,
         responseStatus: response.statusCode,
     }
 

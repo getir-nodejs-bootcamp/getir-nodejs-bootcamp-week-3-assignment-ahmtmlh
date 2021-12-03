@@ -136,7 +136,6 @@ app.get('/movies', (req, res) => {
 //#region Private routes
 
 app.get('/movie/:movieId', verifyAuth, (req, res) => {
-    console.log(req.userData)
     let movieId = req.params.movieId
     const foundMovie = lodash.find(movieDB, (item) => { return item.id == movieId })
 

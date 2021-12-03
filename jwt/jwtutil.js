@@ -10,7 +10,7 @@ class JwtTokenUtil{
     static INVALID_TOKEN = 2
 
     static createToken(id) {
-        let token = jwt.sign({unique_id: id}, JwtTokenUtil.#SECRET, {expiresIn: '5d'})
+        let token = jwt.sign({uniqueId: id}, JwtTokenUtil.#SECRET, {expiresIn: '5d'})
         return JwtTokenUtil.#PREFIX + token
     }
 
