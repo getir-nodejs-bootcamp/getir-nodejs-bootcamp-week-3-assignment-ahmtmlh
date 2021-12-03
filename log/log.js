@@ -13,7 +13,8 @@ function logRequest(request, response) {
     
     let requestInfo = {
         sender: request.headers['user-agent'],
-        url: request.url,
+        url: request._parsedUrl.path,
+        method: request.method,
         responseStatus: response.statusCode,
     }
 

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken')
 
 class JwtTokenUtil{
     static #SECRET = 'GETIRBIMUTLULUK'
+    static #PREFIX = 'Bearer '
     
     // Token validation enums
     static TOKEN_OK = 0
@@ -10,7 +11,7 @@ class JwtTokenUtil{
 
     static createToken(id) {
         let token = jwt.sign({unique_id: id}, JwtTokenUtil.#SECRET, {expiresIn: '5d'})
-        return token
+        return JwtTokenUtil.#PREFIX + token
     }
 
     static verifyToken(token) {
@@ -24,7 +25,11 @@ class JwtTokenUtil{
             returnValue.tokenStatus = JwtTokenUtil.NO_TOKEN            
         } else {
             try {
-                const decodedToken = jwt.verify(token, JwtTokenUtil.#SECRET)
+                if (!token.startsWith(JwtTokenUtil.#PREFIX))
+                    throw new Error('Token doesnt start with prefix!')
+
+                let rawToken = token.substring(JwtTokenUtil.#PREFIX.length)
+                const decodedToken = jwt.verify(rawToken, JwtTokenUtil.#SECRET)
                 returnValue.tokenStatus = JwtTokenUtil.TOKEN_OK
                 returnValue.tokenData = decodedToken
             } catch (err) {

@@ -21,7 +21,6 @@ function createPseudoDB() {
         cast: ['Asa Butterfield', 'Britt Robertson', 'Carla Gugino'],
         imdbScore: 6.7
     })
-    // Movie 2
     movieDB.push({
         id: 1,
         name: 'Batman Begins',
@@ -30,8 +29,7 @@ function createPseudoDB() {
         duration: 140,
         cast: ['Christian Bale', 'Cillian Murphy', 'Michael Caine'],
         imdbScore: 8.2
-    })
-    // Movie 3
+    }) 
     movieDB.push({
         id: 2,
         name: 'Catch Me If You Can',
@@ -41,7 +39,6 @@ function createPseudoDB() {
         cast: ['Leonardo DiCaprio', 'Tom Hanks', 'Amy Adams'],
         imdbScore: 8.1
     })
-    // Movie 4
     movieDB.push({
         id: 3,
         name: 'Inception',
@@ -51,7 +48,6 @@ function createPseudoDB() {
         cast: ['Leonardo DiCaprio', 'Tom Hardy', 'Joseph Gordon-Levitt'],
         imdbScore: 8.8
     })
-    // Movie 5
     movieDB.push({
         id: 4,
         name: 'Limitless',
@@ -67,16 +63,24 @@ function createPseudoDB() {
 //#region Verify Token callback
 
 function verifyAuth(req, res, next) {
-    const token = req.body.token;
-    const continueRoute = false
+    const token = req.body.token || req.header('Authorization');
+    let continueRoute = false
     let tokenValidityCheck = JwtTokenUtil.verifyToken(token)
 
     switch (tokenValidityCheck.tokenStatus) {
         case JwtTokenUtil.INVALID_TOKEN:
-            res.status(401).send('Token is unidentified!')
+            res.status(401).json({
+                success: false,
+                status: 401,
+                message: 'Token is unidentified!'
+            })
             break;
         case JwtTokenUtil.NO_TOKEN:
-            res.status(403).send('I dont know who you are, please tell me who you are via TOKEN')
+            res.status(403).json({
+                success: false,
+                status: 403,
+                message: 'I dont know who you are, please tell me who you are via TOKEN'
+            })
             break;
         case JwtTokenUtil.TOKEN_OK:
             req.userData = tokenValidityCheck.tokenData
@@ -90,40 +94,181 @@ function verifyAuth(req, res, next) {
 
 //#endregion
 
+function updateField(obj, fieldName, newValue, additionalValidation=undefined){
+    if (newValue && (additionalValidation ? additionalValidation(newValue) : true)){
+        obj[fieldName] = newValue            
+    }
+}
+
 //#region App routes
 //#region Public routes
 app.post("/requestToken", (req, res) => {
     let uniqueId = req.body.id || req.body.uniqueId
 
     if (!uniqueId) {
-        res.status(401).send('UniqueID is required as a request body!')
+        res.status(400).json({
+            success: false,
+            status: 400,
+            message: 'UniqueID is required as a request body!'
+        })
         return
     }
 
     let token = JwtTokenUtil.createToken(uniqueId)
 
-    res.status(200).json({token: token})
+    res.status(201).json({
+        success: true,
+        status: 201,
+        token: token
+    })
 });
 
 app.get('/movies', (req, res) => {
-    res.status(200).json(movieDB)
+    res.status(200).json({
+        success: true,
+        status: 200,
+        movies: movieDB
+    })
 })
 
 //#endregion Public routes
 
+//#region Private routes
+
 app.get('/movie/:movieId', verifyAuth, (req, res) => {
+    console.log(req.userData)
     let movieId = req.params.movieId
     const foundMovie = lodash.find(movieDB, (item) => { return item.id == movieId })
 
     if (foundMovie) {
-        res.status(200).json(foundMovie)    
+        res.status(200).json({
+            success: true,
+            status: 200,
+            movie: foundMovie
+        })    
     } else {
-        res.status(404).send('Movie was not found')
+        res.status(404).json({
+            success: false,
+            status: 404,
+            message: 'Movie was not found'
+        })
     }
 })
 
-// TODO: 404 not found page to be added (app.use('*') ??? )
+app.put('/movie/add', verifyAuth, (req, res) => {
+    let movie = req.body.movie
+    let lastMovieId = movieDB[movieDB.length - 1].id
 
+    if (!movie){
+        res.status(400).json({
+            success: false,
+            status: 400,
+            message: 'You need to specify a movie to add!'
+        })
+        return
+    }
+
+    if (!Array.isArray(movie.cast)){
+        res.status(400).json({
+            success: false,
+            status: 400,
+            message: 'Cast of a movie is invalid!'
+        })
+        return
+    }
+
+    let newMovie = {
+        id: lastMovieId + 1,
+        name: movie.name,
+        director: movie.director,
+        year: movie.year,
+        duration: movie.duration,
+        cast: movie.cast,
+        imdbScore: movie.imdbScore
+    }
+
+    movieDB.push(newMovie)
+
+    res.status(201).json({
+        success: true,
+        status: 201,
+        newMovie: newMovie
+    })
+})
+
+
+app.patch('/movie/modify/:movieId', verifyAuth, (req, res) => {
+    let movieId = req.params.movieId
+    let movie = req.body.movie
+
+    if (!movie){
+        res.status(400).json({
+            success: false,
+            status: 400,
+            message: 'A movie-like object is needed to update movie'
+        })
+        return
+    }
+    
+    const foundMovie = lodash.find(movieDB, (item) => { return item.id == movieId })
+    
+    if (!foundMovie){
+        res.status(404).json({
+            success: false,
+            status: 404,
+            message: 'Movie not found!'
+        })
+        return
+    }
+
+    updateField(foundMovie, 'name', movie.name)
+    updateField(foundMovie, 'director', movie.director)
+    updateField(foundMovie, 'year', movie.year)
+    updateField(foundMovie, 'duration', movie.duration)
+    updateField(foundMovie, 'cast', movie.cast, additionalValidation=Array.isArray)
+    updateField(foundMovie, 'imdbScore', movie.imdbScore)
+
+    res.status(200).json({
+        success: true,
+        status: 200,
+        updateMovie: foundMovie
+    })
+})
+
+app.delete('/movie/:movieId', verifyAuth, (req, res) => {
+    let movieId = req.params.movieId
+    const foundMovieIndex = lodash.findIndex(movieDB, (item) => { return item.id == movieId })
+
+    if (foundMovieIndex == -1){
+        res.status(404).json({
+            success: false,
+            status: 404,
+            message: `No movie found for id: ${movieId}`
+        })
+    } else {
+        let movie = movieDB[foundMovieIndex]
+        movieDB.splice(foundMovieIndex, 1)
+        res.status(200).json({
+            success: true,
+            status: 200,
+            deletedMovie: movie
+        })
+    }
+
+})
+
+//#endregion
+
+//#region Not found 404 error handler
+app.use('*', function(req, res){
+    res.status(404).json({
+        success: false,
+        status: 404,
+        message: 'Unknown URL'
+    })
+})
+
+//#endregion
 //#endregion
 
 // App start point
